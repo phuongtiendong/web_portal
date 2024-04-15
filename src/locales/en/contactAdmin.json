@@ -1,0 +1,13 @@
+{
+  "contactAdmin": {
+    "form": {
+      "question": "Question"
+    },
+    "title": "Contact admin",
+    "subheader": "Ask questions to Admin",
+    "questionHistory": {
+      "title": "Question History",
+      "subheader": "Review your question"
+    }
+  }
+}

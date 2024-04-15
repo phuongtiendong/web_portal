@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "baseUrl": "src",
+    "composite": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "esModuleInterop": true,
+    "importsNotUsedAsValues": "error",
+    "forceConsistentCasingInFileNames": true,
+    "jsx": "preserve",
+    "lib": [
+      "esnext",
+      "dom",
+      "es2015", "es2017", "es6"
+    ],
+    "module": "esnext",
+    "moduleResolution": "node",
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noImplicitUseStrict": false,
+    "noStrictGenericChecks": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "esnext",
+    "noEmit": true,
+    "isolatedModules": true,
+    "allowJs": true,
+    "ignoreDeprecations": "5.0",
+    "allowSyntheticDefaultImports": true,
+    "paths": {
+      "@/*": ["src/*"],
+    },
+  },
+  "include": ["src",  "src/assets/locales/**/*.json"],
+}

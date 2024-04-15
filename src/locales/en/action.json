@@ -1,0 +1,10 @@
+{
+  "action": {
+    "save": "Save",
+    "send": "Send",
+    "create": "Create",
+    "logout": "Logout",
+    "edit": "Edit",
+    "delete": "Delete"
+  }
+}
