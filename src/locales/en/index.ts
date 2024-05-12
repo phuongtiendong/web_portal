@@ -9,6 +9,8 @@ import common from "./common.json";
 import user from "./user.json";
 import major from "./major.json";
 import semester from "./semester.json";
+import point from "./point.json";
+import main from "./main.json";
 
 export const viLocales = {
   ...profile,
@@ -21,5 +23,7 @@ export const viLocales = {
   ...common,
   ...user,
   ...major,
-  ...semester
+  ...semester,
+  ...point,
+  ...main
 };

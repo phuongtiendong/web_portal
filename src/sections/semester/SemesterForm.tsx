@@ -1,6 +1,12 @@
 "use client";
 
-import { FormHelperText, MenuItem, Select, TextField } from "@mui/material";
+import {
+  Box,
+  FormHelperText,
+  MenuItem,
+  Select,
+  TextField,
+} from "@mui/material";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardActions from "@mui/material/CardActions";
@@ -10,9 +16,6 @@ import Divider from "@mui/material/Divider";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import Grid from "@mui/material/Unstable_Grid2";
-import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { DemoContainer } from "@mui/x-date-pickers/internals/demo";
 import { SEMESTER_PAGE } from "constant/router";
 import { fieldRequired } from "constant/validation";
 import { DialogContext } from "contexts/DialogContext";
@@ -27,14 +30,15 @@ import {
   type SubjectTimeModel,
 } from "models/view/semester";
 import { useSnackbar } from "notistack";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "routes/hooks";
 import { ClassroomService } from "services/classroom";
 import { SemesterService } from "services/semester";
+import { getEndDay, getFirstDay } from "utils/common";
 import * as Yup from "yup";
 
-const typeOptions = [
+export const typeOptions = [
   {
     label: "semester.form.park",
     value: SubjectTimeTypeEnum.PRAK,
@@ -49,13 +53,102 @@ const typeOptions = [
   },
 ];
 
-export function SemesterForm(): JSX.Element {
+// const weekOptions = [
+//   {
+//     label: "Chẵn",
+//     value: 0,
+//   },
+//   {
+//     label: "Lẻ",
+//     value: 1,
+//   },
+// ];
+
+const weekdayOptions = [
+  {
+    label: "semester.form.monday",
+    value: 0,
+  },
+  {
+    label: "semester.form.tuesday",
+    value: 1,
+  },
+  {
+    label: "semester.form.wednesday",
+    value: 2,
+  },
+  {
+    label: "semester.form.thursday",
+    value: 3,
+  },
+  {
+    label: "semester.form.friday",
+    value: 4,
+  },
+  {
+    label: "semester.form.saturday",
+    value: 5,
+  },
+];
+
+const periodOptions = [
+  {
+    label: "09:00 - 10:30",
+    value: 0,
+  },
+  {
+    label: "10:40 - 12:10",
+    value: 1,
+  },
+  {
+    label: "12:40 - 14:10",
+    value: 2,
+  },
+  {
+    label: "14:20 - 15:50",
+    value: 3,
+  },
+  {
+    label: "16:20 - 17:50",
+    value: 4,
+  },
+  {
+    label: "18:00 - 19:30",
+    value: 5,
+  },
+];
+
+interface SemesterFormProps {
+  defaultData?: SemesterFormModel;
+}
+
+export function SemesterForm({ defaultData }: SemesterFormProps): JSX.Element {
   const { t } = useTranslation();
   const { openDialog } = useContext(DialogContext);
   const { openLoading, closeLoading } = useContext(LoadingContext);
   const { enqueueSnackbar } = useSnackbar();
   const router = useRouter();
   const [classrooms, setClassrooms] = useState<ClassroomModel[]>([]);
+  const year = new Date().getFullYear();
+  const [semester, setSemester] = useState(`${year}_01`);
+
+  const semesterList = useMemo(() => {
+    let result: any[] = [];
+    const years = Array.from({ length: 5 }, (_, i) => i + year);
+    years.forEach((y) => {
+      result = result.concat([
+        {
+          label: `${y}_01`,
+          value: `${y}_01`,
+        },
+        {
+          label: `${y}_02`,
+          value: `${y}_02`,
+        },
+      ]);
+    });
+    return result;
+  }, []);
 
   const getClassroom = async () => {
     try {
@@ -70,11 +163,11 @@ export function SemesterForm(): JSX.Element {
     validateOnChange: false,
     enableReinitialize: true,
     initialValues: {
-      classroomId: 0,
-      startDate: undefined,
-      endDate: undefined,
-      listSubject: [],
-    },
+      ...defaultData,
+      startDate: getFirstDay(year, 9) * 1000,
+      endDate: getFirstDay(year + 1, 2) * 1000,
+      listSubject: defaultData?.listSubject ?? [],
+    } as SemesterFormModel,
     validationSchema: Yup.object({
       classroomId: Yup.number().required(t(fieldRequired)),
       startDate: Yup.string().required(t(fieldRequired)),
@@ -87,35 +180,29 @@ export function SemesterForm(): JSX.Element {
               type: Yup.number().required(t(fieldRequired)),
               teacherName: Yup.string().required(t(fieldRequired)),
               className: Yup.string().required(t(fieldRequired)),
-              week: Yup.number().required(t(fieldRequired)),
+              weekday: Yup.number().required(t(fieldRequired)),
+              period: Yup.number().required(t(fieldRequired)),
             })
           ),
         })
       ),
     }),
     onSubmit: async (value) => {
-      console.log(value);
-      openDialog?.({
-        content: "notification.content.confirmChangePassword",
-        title: "notification.title.confirmChangePassword",
-        onConfirm: async () => {
-          try {
-            openLoading();
-            await SemesterService.create({
-              ...value,
-              startDate: value.startDate || dayjs().valueOf(),
-              endDate: value.endDate || dayjs().valueOf(),
-            });
-            enqueueSnackbar(t("notification.title.success"), {
-              variant: "success",
-            });
-            router.push(SEMESTER_PAGE);
-          } catch (error) {
-          } finally {
-            closeLoading();
-          }
-        },
-      });
+      try {
+        openLoading();
+        await SemesterService.create({
+          ...value,
+          startDate: value.startDate || dayjs().valueOf(),
+          endDate: value.endDate || dayjs().valueOf(),
+        });
+        enqueueSnackbar(t("notification.title.success"), {
+          variant: "success",
+        });
+        router.push(SEMESTER_PAGE);
+      } catch (error) {
+      } finally {
+        closeLoading();
+      }
     },
   });
 
@@ -131,11 +218,13 @@ export function SemesterForm(): JSX.Element {
 
   const errors = errorsValidate as any;
 
-  console.log(values);
-
   useEffect(() => {
     getClassroom();
   }, []);
+
+  const isDetail = useMemo(() => {
+    return !!defaultData?.id;
+  }, [defaultData]);
 
   const handleChangeSubjectTimeField = (
     subjectIndex: number,
@@ -145,7 +234,7 @@ export function SemesterForm(): JSX.Element {
   ) => {
     setValues({
       ...values,
-      listSubject: values.listSubject?.map((subject, idx) =>
+      listSubject: values?.listSubject?.map((subject, idx) =>
         subjectIndex === idx
           ? {
               ...subject,
@@ -154,10 +243,11 @@ export function SemesterForm(): JSX.Element {
                   i === subjectTimeIndex
                     ? ({
                         ...subjectTime,
-                        [key]:
-                          key === "type" || key === "week"
-                            ? Number(value)
-                            : value,
+                        [key]: ["type", "week", "weekday", "period"].includes(
+                          key
+                        )
+                          ? Number(value)
+                          : value,
                       } as SubjectTimeModel)
                     : subjectTime
               ) as SubjectTimeModel[],
@@ -165,6 +255,18 @@ export function SemesterForm(): JSX.Element {
           : subject
       ),
     });
+  };
+
+  const handleChangeSemester = (value: string) => {
+    setSemester(value);
+    const [year, month] = value?.split("_");
+    if (month === '01') {
+      setFieldValue("startDate", getFirstDay(year, 9) * 1000);
+      setFieldValue("endDate", getEndDay(year + 1, 2) * 1000);
+    } else {
+      setFieldValue("startDate", getFirstDay(year, 3) * 1000);
+      setFieldValue("endDate", getEndDay(year, 7) * 1000);
+    }
   };
 
   return (
@@ -179,47 +281,21 @@ export function SemesterForm(): JSX.Element {
           <Grid container spacing={3} pb={3} mt={1}>
             <Grid md={6} xs={12}>
               <FormControl fullWidth required>
-                <LocalizationProvider dateAdapter={AdapterDayjs}>
-                  <DemoContainer components={["DatePicker"]}>
-                    <DatePicker
-                      label={t("blog.form.startDate")}
-                      name="startDate"
-                      selectedSections="all"
-                      format="DD/MM/YYYY"
-                      value={dayjs(values.startDate)}
-                      onChange={(value: any) => {
-                        setFieldValue("startDate", Date.parse(value));
-                      }}
-                    />
-                  </DemoContainer>
-                </LocalizationProvider>
-                {!!errors.startDate && touched.startDate && (
-                  <FormHelperText error id="accountId-error">
-                    {errors.startDate}
-                  </FormHelperText>
-                )}
-              </FormControl>
-            </Grid>
-            <Grid md={6} xs={12}>
-              <FormControl fullWidth required>
-                <LocalizationProvider dateAdapter={AdapterDayjs}>
-                  <DemoContainer components={["DatePicker"]}>
-                    <DatePicker
-                      label={t("blog.form.endDate")}
-                      name="endDate"
-                      selectedSections="all"
-                      value={dayjs(values.endDate)}
-                      onChange={(value: any) => {
-                        setFieldValue("endDate", Date.parse(value));
-                      }}
-                    />
-                  </DemoContainer>
-                </LocalizationProvider>
-                {!!errors.endDate && touched.endDate && (
-                  <FormHelperText error id="accountId-error">
-                    {errors.endDate}
-                  </FormHelperText>
-                )}
+                <InputLabel>{t("semester.list.title")}</InputLabel>
+                <Select
+                  disabled={isDetail}
+                  value={semester}
+                  onChange={(event) =>
+                    handleChangeSemester(event.target?.value)
+                  }
+                  variant="outlined"
+                >
+                  {semesterList.map((semester, index) => (
+                    <MenuItem key={index.toString()} value={semester.value}>
+                      {semester.label}
+                    </MenuItem>
+                  ))}
+                </Select>
               </FormControl>
             </Grid>
             <Grid md={12} xs={12}>
@@ -228,7 +304,8 @@ export function SemesterForm(): JSX.Element {
                 <Select
                   label="State"
                   name="classroomId"
-                  value={values.classroomId}
+                  disabled={isDetail}
+                  value={values?.classroomId}
                   onChange={handleChange}
                   variant="outlined"
                   error={!!errors.classroomId && touched.classroomId}
@@ -250,25 +327,50 @@ export function SemesterForm(): JSX.Element {
           <Button
             variant="contained"
             color="primary"
+            disabled={isDetail}
             onClick={() => {
               setValues({
                 ...values,
-                listSubject: [...values.listSubject, {} as SubjectModel],
+                listSubject: [...values?.listSubject, {} as SubjectModel],
               });
             }}
           >
             {t("semester.form.addSubject")}
           </Button>
-          {values.listSubject.map((subject, index) => (
+          {values?.listSubject?.map((subject, index) => (
             <div key={index}>
-              <h3>{t("semester.form.subjectIndex", { index: index + 1 })}</h3>
+              <Box
+                sx={{ display: "flex", flexDirection: "row", gap: "20px" }}
+                alignItems="center"
+              >
+                <h3>{t("semester.form.subjectIndex", { index: index + 1 })}</h3>
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  disabled={isDetail}
+                  size="small"
+                  sx={{ height: "30px" }}
+                  onClick={() => {
+                    const newListSubject = values?.listSubject?.filter(
+                      (_, i) => i !== index
+                    );
+                    setValues({
+                      ...values,
+                      listSubject: newListSubject,
+                    });
+                  }}
+                >
+                  {t("action.delete")}
+                </Button>
+              </Box>
               <Field
                 name={`listSubject[${index}].name`}
                 component={TextField}
+                disabled={isDetail}
                 onChange={(event: any) =>
                   setValues({
                     ...values,
-                    listSubject: values.listSubject.map((subject, idx) =>
+                    listSubject: values?.listSubject?.map((subject, idx) =>
                       index === idx
                         ? {
                             ...subject,
@@ -296,11 +398,12 @@ export function SemesterForm(): JSX.Element {
                 <Button
                   variant="contained"
                   color="secondary"
+                  disabled={isDetail}
                   size="small"
                   onClick={() => {
                     setValues({
                       ...values,
-                      listSubject: values?.listSubject.map((sub, subIndex) =>
+                      listSubject: values?.listSubject?.map((sub, subIndex) =>
                         subIndex === index
                           ? {
                               ...sub,
@@ -308,7 +411,7 @@ export function SemesterForm(): JSX.Element {
                                 ...(sub?.listSubjectTime
                                   ? sub?.listSubjectTime
                                   : []),
-                                {} as SubjectTimeModel,
+                                { week: 0 } as SubjectTimeModel,
                               ],
                             }
                           : sub
@@ -318,19 +421,55 @@ export function SemesterForm(): JSX.Element {
                 >
                   {t("semester.form.addSubjectTime")}
                 </Button>
-                {subject.listSubjectTime?.map((time, timeIndex) => (
+                {subject?.listSubjectTime?.map((time, timeIndex) => (
                   <div key={timeIndex}>
-                    <h3>
-                      {t("semester.form.subjectTimeIndex", {
-                        index: timeIndex + 1,
-                      })}
-                    </h3>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "row",
+                        gap: "20px",
+                      }}
+                      alignItems="center"
+                    >
+                      <h3>
+                        {t("semester.form.subjectTimeIndex", {
+                          index: timeIndex + 1,
+                        })}
+                      </h3>
+                      <Button
+                        variant="contained"
+                        color="secondary"
+                        size="small"
+                        disabled={isDetail}
+                        sx={{ height: "30px" }}
+                        onClick={() => {
+                          const newListSubjectTime = values?.listSubject[
+                            index
+                          ]?.listSubjectTime?.filter((_, i) => i !== timeIndex);
+                          setValues({
+                            ...values,
+                            listSubject: values?.listSubject?.map(
+                              (sub, subIndex) =>
+                                subIndex === index
+                                  ? {
+                                      ...sub,
+                                      listSubjectTime: newListSubjectTime,
+                                    }
+                                  : sub
+                            ),
+                          });
+                        }}
+                      >
+                        {t("action.delete")}
+                      </Button>
+                    </Box>
                     <Grid spacing={3}>
                       <FormControl required sx={{ flex: 1 }}>
                         <InputLabel>{t("semester.form.type")}</InputLabel>
                         <Select
                           label={t("semester.form.type")}
                           value={time.type}
+                          disabled={isDetail}
                           sx={{ width: 220, mr: 2 }}
                           onChange={(event: any) => {
                             handleChangeSubjectTimeField(
@@ -377,6 +516,7 @@ export function SemesterForm(): JSX.Element {
                       <TextField
                         label={t("semester.form.teacherName")}
                         value={time.teacherName}
+                        disabled={isDetail}
                         sx={{ pr: 2 }}
                         onChange={(event: any) => {
                           handleChangeSubjectTimeField(
@@ -411,6 +551,7 @@ export function SemesterForm(): JSX.Element {
                         label={t("semester.form.className")}
                         value={time.className}
                         sx={{ pr: 2 }}
+                        disabled={isDetail}
                         onChange={(event: any) => {
                           handleChangeSubjectTimeField(
                             index,
@@ -440,39 +581,153 @@ export function SemesterForm(): JSX.Element {
                             .className
                         }
                       />
-                      <TextField
-                        label={t("semester.form.week")}
-                        value={time.week}
-                        onChange={(event: any) => {
-                          handleChangeSubjectTimeField(
-                            index,
-                            timeIndex,
-                            event.target.value,
-                            "week"
-                          );
-                        }}
-                        type="number"
-                        error={
-                          errors.listSubject &&
+                      {/* <FormControl required sx={{ flex: 1 }}>
+                        <InputLabel>{t("semester.form.week")}</InputLabel>
+                        <Select
+                          label={t("semester.form.week")}
+                          value={time.week}
+                          disabled={isDetail}
+                          sx={{ width: 220, mr: 2 }}
+                          onChange={(event: any) => {
+                            handleChangeSubjectTimeField(
+                              index,
+                              timeIndex,
+                              event.target.value,
+                              "week"
+                            );
+                          }}
+                          variant="outlined"
+                          error={
+                            errors.listSubject &&
+                            errors.listSubject[index] &&
+                            errors.listSubject[index].listSubjectTime &&
+                            errors.listSubject[index].listSubjectTime[
+                              timeIndex
+                            ] &&
+                            errors.listSubject[index].listSubjectTime[timeIndex]
+                              .week
+                          }
+                        >
+                          {weekOptions.map((option, index) => (
+                            <MenuItem
+                              key={index.toString()}
+                              value={option.value}
+                            >
+                              {t(option.label)}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        {errors.listSubject &&
                           errors.listSubject[index] &&
                           errors.listSubject[index].listSubjectTime &&
                           errors.listSubject[index].listSubjectTime[
                             timeIndex
                           ] &&
                           errors.listSubject[index].listSubjectTime[timeIndex]
-                            .week
-                        }
-                        helperText={
-                          errors.listSubject &&
+                            .week && (
+                            <FormHelperText error id="accountId-error">
+                              {errors.classroom}
+                            </FormHelperText>
+                          )}
+                      </FormControl> */}
+                      <FormControl required sx={{ flex: 1 }}>
+                        <InputLabel>{t("semester.form.weekday")}</InputLabel>
+                        <Select
+                          label={t("semester.form.weekday")}
+                          value={time.weekday}
+                          disabled={isDetail}
+                          sx={{ width: 220, mr: 2 }}
+                          onChange={(event: any) => {
+                            handleChangeSubjectTimeField(
+                              index,
+                              timeIndex,
+                              event.target.value,
+                              "weekday"
+                            );
+                          }}
+                          variant="outlined"
+                          error={
+                            errors.listSubject &&
+                            errors.listSubject[index] &&
+                            errors.listSubject[index].listSubjectTime &&
+                            errors.listSubject[index].listSubjectTime[
+                              timeIndex
+                            ] &&
+                            errors.listSubject[index].listSubjectTime[timeIndex]
+                              .weekday
+                          }
+                        >
+                          {weekdayOptions.map((option, index) => (
+                            <MenuItem
+                              key={index.toString()}
+                              value={option.value}
+                            >
+                              {t(option.label)}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        {errors.listSubject &&
                           errors.listSubject[index] &&
                           errors.listSubject[index].listSubjectTime &&
                           errors.listSubject[index].listSubjectTime[
                             timeIndex
                           ] &&
                           errors.listSubject[index].listSubjectTime[timeIndex]
-                            .week
-                        }
-                      />
+                            .weekday && (
+                            <FormHelperText error id="accountId-error">
+                              {errors.classroom}
+                            </FormHelperText>
+                          )}
+                      </FormControl>
+                      <FormControl required sx={{ flex: 1 }}>
+                        <InputLabel>{t("semester.form.period")}</InputLabel>
+                        <Select
+                          label={t("semester.form.period")}
+                          value={time.period}
+                          disabled={isDetail}
+                          sx={{ width: 220, mr: 2 }}
+                          onChange={(event: any) => {
+                            handleChangeSubjectTimeField(
+                              index,
+                              timeIndex,
+                              event.target.value,
+                              "period"
+                            );
+                          }}
+                          variant="outlined"
+                          error={
+                            errors.listSubject &&
+                            errors.listSubject[index] &&
+                            errors.listSubject[index].listSubjectTime &&
+                            errors.listSubject[index].listSubjectTime[
+                              timeIndex
+                            ] &&
+                            errors.listSubject[index].listSubjectTime[timeIndex]
+                              .period
+                          }
+                        >
+                          {periodOptions.map((option, index) => (
+                            <MenuItem
+                              key={index.toString()}
+                              value={option.value}
+                            >
+                              {t(option.label)}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        {errors.listSubject &&
+                          errors.listSubject[index] &&
+                          errors.listSubject[index].listSubjectTime &&
+                          errors.listSubject[index].listSubjectTime[
+                            timeIndex
+                          ] &&
+                          errors.listSubject[index].listSubjectTime[timeIndex]
+                            .period && (
+                            <FormHelperText error id="accountId-error">
+                              {errors.classroom}
+                            </FormHelperText>
+                          )}
+                      </FormControl>
                     </Grid>
                   </div>
                 ))}
@@ -486,6 +741,7 @@ export function SemesterForm(): JSX.Element {
         <Button
           variant="contained"
           type="submit"
+          disabled={isDetail}
           onClick={() => handleSubmit()}
         >
           {t("profile.action.save")}

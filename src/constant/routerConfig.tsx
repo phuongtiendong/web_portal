@@ -2,19 +2,21 @@ import { LazyExoticComponent, lazy } from "react";
 import {
   CHANGE_PASSWORD_PAGE,
   CONTACT_ADMIN,
-  DASHBOARD_PAGE,
   MAIN_PAGE,
   NEW_NOTIFICATION,
   NEW_SEMESTER,
   NEW_USER,
   NOTIFICATION_PAGE,
-  PRODUCTS_PAGE,
   PROFILE_PAGE,
   RESET_PASSWORD,
   SEMESTER_PAGE,
   UPDATE_USER,
   USER_PAGE,
-  MAP
+  MAP_PAGE,
+  DETAIL_SEMESTER,
+  POINT_PAGE,
+  DETAIL_NOTIFICATION,
+  EDUCATION_DETAIL
 } from "./router";
 import SvgColor from "components/SvgColor";
 
@@ -25,9 +27,8 @@ export const icon = (name: string) => (
   />
 );
 
-export const ROUTER_NO_AUTH = [MAIN_PAGE, RESET_PASSWORD];
+export const ROUTER_NO_AUTH = [MAIN_PAGE, RESET_PASSWORD, EDUCATION_DETAIL];
 
-const IndexPage = lazy(() => import("pages/App"));
 const UserPage = lazy(() => import("pages/User"));
 const NotificationPage = lazy(() => import("pages/Blog"));
 const ProfilePage = lazy(() => import("pages/Profile"));
@@ -38,6 +39,8 @@ const UserFormPage = lazy(() => import("pages/admin/UserForm"));
 const SemesterPage = lazy(() => import("pages/admin/Semester"));
 const NewSemesterPage = lazy(() => import("sections/semester/NewSemesterView"));
 const MapPage = lazy(() => import("sections/map/view/MapView"));
+const SemesterDetailPage = lazy(() => import("sections/semester/SemesterDetail"));
+const PointPage = lazy(() => import("pages/Point"));
 
 interface RouterItemModel {
   index?: boolean;
@@ -49,13 +52,6 @@ interface RouterItemModel {
 }
 
 export const routerUser: RouterItemModel[] = [
-  {
-    path: DASHBOARD_PAGE,
-    element: IndexPage,
-    index: true,
-    title: "title.dashboard",
-    icon: icon("ic_analytics"),
-  },
   {
     path: PROFILE_PAGE,
     element: ProfilePage,
@@ -74,27 +70,43 @@ export const routerUser: RouterItemModel[] = [
     icon: icon("ic_blog"),
   },
   {
+    path: DETAIL_NOTIFICATION,
+    element: NewNotificationPage,
+    title: "title.notification",
+    isHiddenMenu: true,
+  },
+  {
     path: CONTACT_ADMIN,
     element: ContactAdminPage,
     title: "title.contactAdmin",
     icon: icon("ic_contact-admin"),
   },
   {
-    path: MAP,
+    path: SEMESTER_PAGE,
+    element: SemesterPage,
+    title: "title.semester",
+    icon: icon("ic_semester"),
+  },
+  {
+    path: MAP_PAGE,
     element: MapPage,
     title: "title.map",
-    icon: icon("ic_contact-admin"),
+    icon: icon("ic_map"),
+  },
+  {
+    path: POINT_PAGE,
+    element: PointPage,
+    title: "title.point",
+    icon: icon("ic_point"),
+  },
+  {
+    path: DETAIL_SEMESTER,
+    element: SemesterDetailPage,
+    isHiddenMenu: true
   },
 ];
 
 export const routerAdmin: RouterItemModel[] = [
-  {
-    path: DASHBOARD_PAGE,
-    element: IndexPage,
-    index: true,
-    title: "title.dashboard",
-    icon: icon("ic_analytics"),
-  },
   {
     path: PROFILE_PAGE,
     element: ProfilePage,
@@ -126,6 +138,12 @@ export const routerAdmin: RouterItemModel[] = [
     isHiddenMenu: true,
   },
   {
+    path: DETAIL_NOTIFICATION,
+    element: NewNotificationPage,
+    title: "title.notification",
+    isHiddenMenu: true,
+  },
+  {
     path: CONTACT_ADMIN,
     element: ContactAdminPage,
     title: "title.contactAdmin",
@@ -144,7 +162,8 @@ export const routerAdmin: RouterItemModel[] = [
   {
     path: SEMESTER_PAGE,
     element: SemesterPage,
-    title: "title.semester"
+    title: "title.semester",
+    icon: icon("ic_semester"),
   },
   {
     path: NEW_SEMESTER,
@@ -152,9 +171,20 @@ export const routerAdmin: RouterItemModel[] = [
     isHiddenMenu: true
   },
   {
-    path: MAP,
+    path: DETAIL_SEMESTER,
+    element: SemesterDetailPage,
+    isHiddenMenu: true
+  },
+  {
+    path: POINT_PAGE,
+    element: PointPage,
+    title: "title.point",
+    icon: icon("ic_point"),
+  },
+  {
+    path: MAP_PAGE,
     element: MapPage,
     title: "title.map",
-    icon: icon("ic_contact-admin"),
+    icon: icon("ic_map"),
   },
 ];

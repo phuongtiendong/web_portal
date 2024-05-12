@@ -20,7 +20,7 @@ import LockOpenIcon from "@mui/icons-material/LockOpen";
 import { FormHelperText } from "@mui/material";
 import Iconify from "components/Iconify";
 import { ACCESS_TOKEN } from "constant/key";
-import { DASHBOARD_PAGE, RESET_PASSWORD } from "constant/router";
+import { PROFILE_PAGE, RESET_PASSWORD } from "constant/router";
 import { fieldEmail, fieldRequired } from "constant/validation";
 import { AuthContext } from "contexts/AuthContext";
 import { LoadingContext } from "contexts/LoadingContext";
@@ -32,6 +32,7 @@ import { useTranslation } from "react-i18next";
 import { AuthService } from "services/auth";
 import { handleLocalStorage } from "utils/localStorage";
 import * as Yup from "yup";
+import { BASE_ERROR_CODE } from "constant/apiPath";
 
 // ----------------------------------------------------------------------
 
@@ -41,7 +42,7 @@ export default function LoginView() {
   const router = useRouter();
   const { setLocalStorage } = handleLocalStorage();
   const { enqueueSnackbar } = useSnackbar();
-  const { handleGetUserInfor } = useContext(AuthContext)
+  const { handleGetUserInfor } = useContext(AuthContext);
 
   const [showPassword, setShowPassword] = useState(false);
 
@@ -61,14 +62,19 @@ export default function LoginView() {
     onSubmit: async (value) => {
       try {
         openLoading();
-        const { data: accessToken } = await AuthService.login(value);
-        console.log(accessToken)
+        const { data: accessToken, code } = await AuthService.login(value);
+        if (code === BASE_ERROR_CODE.AUTHENTICATION_FAILED) {
+          enqueueSnackbar(t("notification.title.loginFail"), {
+            variant: "error",
+          });
+          return;
+        }
         setLocalStorage(ACCESS_TOKEN, accessToken);
         enqueueSnackbar(t("notification.title.loginSuccess"), {
           variant: "success",
         });
-        await handleGetUserInfor()
-        router.push(DASHBOARD_PAGE);
+        await handleGetUserInfor();
+        router.push(PROFILE_PAGE);
       } catch (error) {
         enqueueSnackbar(t("notification.title.loginFail"), {
           variant: "error",
@@ -83,7 +89,7 @@ export default function LoginView() {
 
   useEffect(() => {
     const accessToken = localStorage.getItem(ACCESS_TOKEN);
-    if (accessToken) router.push(DASHBOARD_PAGE);
+    if (accessToken) router.push(PROFILE_PAGE);
   }, []);
 
   const renderForm = (

@@ -25,6 +25,7 @@ import {
   fieldPhoneNumber,
   fieldRequired,
 } from "constant/validation";
+import { AuthContext } from "contexts/AuthContext";
 import dayjs from "dayjs";
 import { useFormik } from "formik";
 import type { ClassroomModel } from "models/view/classroom";
@@ -38,6 +39,7 @@ import { ClassroomService } from "services/classroom";
 import { UploadService } from "services/upload";
 import { UserService } from "services/user";
 import { convertObjectWithDefaults, isAdmin } from "utils/common";
+import { convertDate } from "utils/formatTime";
 import { handleLocalStorage } from "utils/localStorage";
 import * as Yup from "yup";
 
@@ -60,6 +62,7 @@ export function AccountDetailsForm({
   const { enqueueSnackbar } = useSnackbar();
   const { getLocalStorage } = handleLocalStorage();
   const router = useRouter();
+  const { handleGetUserInfor } = React.useContext(AuthContext);
   const [classroom, setClassroom] = React.useState<ClassroomModel[]>([]);
 
   const isAdminAccount = React.useMemo(() => {
@@ -68,13 +71,14 @@ export function AccountDetailsForm({
   const getClassroom = async () => {
     try {
       const data = await ClassroomService.getList();
-      setClassroom(data);
+      if (data && Array.isArray(data)) setClassroom(data);
     } catch (error) {
       console.log(error);
     }
   };
 
   const classroomOptions = React.useMemo(() => {
+    if (classroom.length === 0) return [];
     return classroom.map((i) => ({ value: i.id, label: i.name }));
   }, [classroom]);
 
@@ -87,13 +91,14 @@ export function AccountDetailsForm({
       .matches(phoneNumberRegex, t(fieldPhoneNumber)),
     ...(!isAdminAccount ? { classroomId: Yup.string().required() } : {}),
   });
-
   const formik = useFormik<UserInformationModel>({
     validateOnChange: true,
     enableReinitialize: true,
     initialValues: convertObjectWithDefaults<UserInformationModel>({
       ...defaultData,
+      ...(defaultData?.classroom ? { classroomId: defaultData?.classroom?.id } : {}),
       isFemale: defaultData?.isFemale ? 1 : 0,
+      birthDate: new Date(convertDate(defaultData?.birthDate as string ?? '')).valueOf()
     }),
     validationSchema,
     onSubmit: async (value) => {
@@ -107,13 +112,14 @@ export function AccountDetailsForm({
         }
         const payload = {
           ...value,
-          classroom: value.classroomId,
+          classroom: undefined,
           imageUrl: imageUrl ?? defaultData?.imageUrl,
           isFemale: !value.isFemale,
           birthDate: value.birthDate || dayjs().valueOf()
         }
         if (pathname === PROFILE_PAGE) {
           await AuthService.updateUserInfo(payload);
+          await handleGetUserInfor()
         } else if (pathname === NEW_USER) {
           await AuthService.register(payload);
         } else {
@@ -141,11 +147,12 @@ export function AccountDetailsForm({
     
   }, []);
 
+  console.log(errors)
+
   const showClassroomField = React.useMemo(() => {
     if (pathname === PROFILE_PAGE && isAdminAccount) return false;
     return true;
   }, [pathname, isAdminAccount]);
-
   return (
     <Card>
       <CardHeader
@@ -163,9 +170,9 @@ export function AccountDetailsForm({
                 name="name"
                 value={values.name}
                 onChange={handleChange}
-                error={!!errors.name && touched.name}
+                error={!!errors.name}
               />
-              {!!errors.name && touched.name && (
+              {!!errors.name && (
                 <FormHelperText error id="accountId-error">
                   {errors.name}
                 </FormHelperText>
@@ -180,9 +187,10 @@ export function AccountDetailsForm({
                 name="email"
                 value={values.email}
                 onChange={handleChange}
-                error={!!errors.email && touched.email}
+                disabled={pathname === PROFILE_PAGE}
+                error={!!errors.email}
               />
-              {!!errors.email && touched.email && (
+              {!!errors.email && (
                 <FormHelperText error id="accountId-error">
                   {errors.email}
                 </FormHelperText>
@@ -200,15 +208,15 @@ export function AccountDetailsForm({
                   onChange={handleChange}
                   variant="outlined"
                   disabled={pathname === PROFILE_PAGE}
-                  error={!!errors.classroomId && touched.classroomId}
+                  error={!!errors.classroomId}
                 >
-                  {classroomOptions.map((option, index) => (
+                  {classroomOptions?.map((option, index) => (
                     <MenuItem key={index.toString()} value={option.value}>
                       {option.label}
                     </MenuItem>
                   ))}
                 </Select>
-                {!!errors.classroomId && touched.classroomId && (
+                {!!errors.classroomId && (
                   <FormHelperText error id="accountId-error">
                     {errors.classroomId}
                   </FormHelperText>
@@ -226,15 +234,15 @@ export function AccountDetailsForm({
                 value={values.isFemale}
                 onChange={handleChange}
                 variant="outlined"
-                error={!!errors.isFemale && touched.isFemale}
+                error={!!errors.isFemale}
               >
-                {genders.map((option, index) => (
+                {genders?.map((option, index) => (
                   <MenuItem key={index.toString()} value={option.value}>
                     {t(option.label)}
                   </MenuItem>
                 ))}
               </Select>
-              {!!errors.isFemale && touched.isFemale && (
+              {!!errors.isFemale && (
                 <FormHelperText error id="accountId-error">
                   {errors.isFemale}
                 </FormHelperText>
@@ -260,7 +268,7 @@ export function AccountDetailsForm({
                   />
                 </DemoContainer>
               </LocalizationProvider>
-              {!!errors.birthDate && touched.birthDate && (
+              {!!errors.birthDate && (
                 <FormHelperText error id="accountId-error">
                   {errors.birthDate}
                 </FormHelperText>
@@ -275,9 +283,9 @@ export function AccountDetailsForm({
                 name="phoneNumber"
                 value={values.phoneNumber}
                 onChange={handleChange}
-                error={!!errors.phoneNumber && touched.phoneNumber}
+                error={!!errors.phoneNumber}
               />
-              {!!errors.phoneNumber && touched.phoneNumber && (
+              {!!errors.phoneNumber && (
                 <FormHelperText error id="accountId-error">
                   {errors.phoneNumber}
                 </FormHelperText>
